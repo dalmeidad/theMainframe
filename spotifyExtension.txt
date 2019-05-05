@@ -1,0 +1,7 @@
+Wed Nov 28
+Concept: Add-on for spotify that calibrates a person's taste in music to:
+Color
+Texture
+Value
+and plays specific preset radios based on that kind of calibration. Similar to Milk app for samsung.
+

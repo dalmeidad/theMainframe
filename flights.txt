@@ -1,0 +1,2 @@
+Sun May 5 2019
+Concept: Combination between graph greedy alg and deadline scheduling. Use flight tracking API to pull data for start node s and end node t, returns all possible options (specifically routes that use different airlines as layovers. Notably - will need terminal information to prevent short layovers causing missed flights because of traversal thru security during layover)

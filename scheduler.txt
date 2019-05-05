@@ -1,0 +1,4 @@
+Wed Nov 28
+Concept: A GUI that uses information from a {google form} to show who is available at specified times
+API?
+Might be easier to do in google sheets or something
