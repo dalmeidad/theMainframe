@@ -1,8 +1,27 @@
-%list comes in as:
-%[ [ 1-9 ]  ...
-%  [ 1-9 ]  ...
-%          ]
-% board([ [5,3,0,0,7,0,0,0,0],
+/* 
+ * Sudoku solver made by Justin T Washington and Dawson d'Almeida 
+ * list comes in as:
+ * [ 
+ *   [ 1-9 ]
+ *   [ 1-9 ]
+ *    ...x9
+ *           ]
+*/
+
+% board([ %Finished Board
+%         [5,3,4,6,7,8,9,1,2],
+%         [6,7,2,1,9,5,3,4,8],
+%         [1,9,8,3,4,2,5,6,7],
+%         [8,5,9,7,6,1,4,2,3],
+%         [4,2,6,8,5,3,7,9,1],
+%         [7,1,3,9,2,4,8,5,6],
+%         [9,6,1,5,3,7,2,8,4],
+%         [2,8,7,4,1,9,6,3,5],
+%         [3,4,5,2,8,6,1,7,9]
+%     ]).
+
+% board([ %Incomplete Board
+%         [5,3,0,0,7,0,0,0,0],
 %         [6,0,0,1,9,5,0,0,0],
 %         [0,9,8,0,0,0,0,6,0],
 %         [8,0,0,0,6,0,0,0,3],
@@ -12,124 +31,108 @@
 %         [0,0,0,4,1,9,0,0,5],
 %         [0,0,0,0,8,0,0,7,9] ]).
 
-% board([ [5,3,0,0,7,0,0,0,0],
-%         [6,0,0,1,9,5,0,0,0],
-%         [3,9,8,0,0,0,0,6,0],
-%         [8,0,0,0,6,0,0,0,3],
-%         [4,0,0,8,0,3,0,0,1],
-%         [7,0,0,0,2,0,0,0,6],
-%         [1,6,0,0,0,0,2,8,0],
-%         [9,0,0,4,1,9,0,0,5],
-%         [2,0,0,0,8,0,0,7,9] ]).
+ board([ %Blank Board
+          [0,0,0,0,0,0,0,0,0],
+          [0,0,0,0,0,0,0,0,0],
+          [0,0,0,0,0,0,0,0,0],
+          [0,0,0,0,0,0,0,0,0],
+          [0,0,0,0,0,0,0,0,0],
+          [0,0,0,0,0,0,0,0,0],
+          [0,0,0,0,0,0,0,0,0],
+          [0,0,0,0,0,0,0,0,0],
+          [0,0,0,0,0,0,0,0,0]
+         ]).
 
-board([ [5,3,1,0,7,0,0,0,0],
-        [6,4,2,1,9,5,0,0,0],
-        [8,9,7,0,0,0,0,6,0],
-        [8,0,0,0,6,0,0,0,3],
-        [4,0,0,8,0,3,0,0,1],
-        [7,0,0,0,2,0,0,0,6],
-        [1,6,0,0,0,0,2,8,0],
-        [9,0,0,4,1,9,0,0,5],
-        [2,0,0,0,8,0,0,7,9] ]).
 
-% X = 2 + 3 -> X: 2+3
-% X is 2 + 3 -> X: 5
-% X ==
-
-%TODO
-% e
-
-print(X) :- board(X), show(X).
-
-show([]) :- false.
+/* Show the board */
+print(B) :- show(B).
+show([]).
 show([R|Remaining]) :-  write(R), write('\n'), show(Remaining).
 
-getIthItem([H|_], 0, H).
-getIthItem([_|T], I, Return) :- J is I - 1, getIthItem(T, J, Return).
-
+/* Used for detecting valid numbers to place; no row, col, or box can have 2 of the same number */
 noDouble(Lst) :- noDoubleHelper(Lst, [0]).
 noDoubleHelper([],_).
 noDoubleHelper([H|T], Seen) :-
     not(memberIgnore0(H, Seen)), append(Seen, [H], UpdatedSeen), noDoubleHelper(T, UpdatedSeen).
-
-%works like member(X,Lst), but ignores 0
+%works like member(X,Lst), but returns false on 0
 memberIgnore0(X, Lst) :- 
     not(X==0), 
     member(X, Lst).
 
+/* Given a Board, replace the next 0 with a valid number 1-9 and return it in NewBoard */
+replace0(B, NewB) :- 
+    getFirstRowWith0FromBoard(B,Row), %get the row to do the swap on
+    nth0(ColIndex,Row,0), %Get ColIndex of 0 we replaced in OldRow
+    nth0(RowIndexOld,B,Row), !, 
+    swap0InRow(Row, NewRow),
+    swapRowInBoard(Row, B, NewRow, NewB),
+    nth0(RowIndexNew,NewB,NewRow), %Verify the correct indicies have been swapped
+    RowIndexOld == RowIndexNew,
+    checkSquare(NewB, RowIndexNew, ColIndex). %Verify valid placement.
 
-%% stuff below this needs to be redone
-checkRow(R) :-   
-                member(1, R), 
-                member(2, R),
-                member(3, R),
-                member(4, R),
-                member(5, R),
-                member(6, R),
-                member(7, R),
-                member(8, R),
-                member(9, R).
+/* Detect the first Row that has a 0 that can be replaced and return the Row */
+getFirstRowWith0FromBoard([H|_], H) :- member(0, H), !.
+getFirstRowWith0FromBoard([_|T], X) :- getFirstRowWith0FromBoard(T, X),!.
+getFirstRowWith0FromBoard([],_) :- false. %when the board is out of rows to check for 0.
 
+/* Given a Row with a 0, return that Row but with the first 0 swapped out for a number 1-9 */
+swap0InRow([H|T],[X|T]) :- H is 0, !, between(1,9,X).
+swap0InRow([H|T],[H|X]) :- swap0InRow(T, X). 
 
+/* Swap out first matching OldRow in B with NewRow and return it in NewB */
+swapRowInBoard(OldRow, [H|T], NewRow, [NewRow|T]) :- OldRow == H, !.
+swapRowInBoard(OldRow, [H|T], NewRow, [H|X]) :- swapRowInBoard(OldRow, T, NewRow, X), !.
 
-%Index is between 0 and 8
-checkCol([R1, R2, R3, R4, R5, R6, R7, R8, R9], Index) :- getIthItem(R1, Index, X1), 
-                                                         getIthItem(R2, Index, X2), 
-                                                         getIthItem(R3, Index, X3), 
-                                                         getIthItem(R4, Index, X4), 
-                                                         getIthItem(R5, Index, X5), 
-                                                         getIthItem(R6, Index, X6), 
-                                                         getIthItem(R7, Index, X7), 
-                                                         getIthItem(R8, Index, X8), 
-                                                         getIthItem(R9, Index, X9),
-                                                         checkRow([X1, X2, X3, X4, X5, X6, X7, X8, X9]).
-%I and J are between 0 and 2
-checkBox(B, I, J) :- V1 is J*3, V2 is J*3+1, V3 is J*3+2,
-                     V is I*3, 
-                     getIthItem(B, V, R1), getIthItem(R1, V1, X1), getIthItem(R1, V2, X2), getIthItem(R1, V3, X3),
-                     X is I*3+1, 
-                     getIthItem(B, X, R2), getIthItem(R2, V1, X4), getIthItem(R2, V2, X5), getIthItem(R2, V3, X6),
-                     Y is I*3+2, 
-                     getIthItem(B, Y, R3), getIthItem(R3, V1, X7), getIthItem(R3, V2, X8), getIthItem(R3, V3, X9),
-                     check([X1, X2, X3, X4, X5, X6, X7, X8, X9]).
+/* Verify that the row, col, and box of the square at (Row, Col) is valid */
+checkSquare(B,Row,Col) :- 
+    checkRow(B, Row),
+    checkCol(B, Col),
+    checkBox(B, Row, Col).
 
-checkAllRow(B) :- 
-                getIthItem(B,0,R0), checkRow(R0),
-                getIthItem(B,1,R1), checkRow(R1),
-                getIthItem(B,2,R2), checkRow(R2),
-                getIthItem(B,3,R3), checkRow(R3),
-                getIthItem(B,4,R4), checkRow(R4),
-                getIthItem(B,5,R5), checkRow(R5),
-                getIthItem(B,6,R6), checkRow(R6),
-                getIthItem(B,7,R7), checkRow(R7),
-                getIthItem(B,8,R8), checkRow(R8).
+checkRow(B, Index) :-  
+    nth0(Index,B,R),
+    noDouble(R). 
 
-checkAllCol([R0, R1, R2, R3, R4, R5, R6, R7, R8]) :- 
-                checkCol(R0, 0),
-                checkCol(R1, 1),
-                checkCol(R2, 2),
-                checkCol(R3, 3),
-                checkCol(R4, 4),
-                checkCol(R5, 5),
-                checkCol(R6, 6),
-                checkCol(R7, 7),
-                checkCol(R8, 8).
+checkCol([R0, R1, R2, R3, R4, R5, R6, R7, R8], Index) :- 
+    nth0(Index, R0, X0),
+    nth0(Index, R1, X1), 
+    nth0(Index, R2, X2), 
+    nth0(Index, R3, X3), 
+    nth0(Index, R4, X4), 
+    nth0(Index, R5, X5), 
+    nth0(Index, R6, X6), 
+    nth0(Index, R7, X7), 
+    nth0(Index, R8, X8), 
+    noDouble([X0, X1, X2, X3, X4, X5, X6, X7, X8]).
 
+checkBox(B, Row, Col) :- 
+    ARowIndex is (Row//3)*3,
+    BRowIndex is ARowIndex+1,
+    CRowIndex is ARowIndex+2,
+    nth0(ARowIndex, B, ARow),
+    nth0(BRowIndex, B, BRow),
+    nth0(CRowIndex, B, CRow),
+    AColIndex is (Col//3)*3,
+    BColIndex is AColIndex+1,
+    CColIndex is AColIndex+2,
+    nth0(AColIndex, ARow, X0),
+    nth0(BColIndex, ARow, X1),
+    nth0(CColIndex, ARow, X2),
+    nth0(AColIndex, BRow, X3),
+    nth0(BColIndex, BRow, X4),
+    nth0(CColIndex, BRow, X5),
+    nth0(AColIndex, CRow, X6),
+    nth0(BColIndex, CRow, X7),
+    nth0(CColIndex, CRow, X8),
+    noDouble([X0, X1, X2, X3, X4, X5, X6, X7, X8]).
 
+/* Verify the board has only 1-9 on it */
+boardFinished([H|T]) :- not(member(0,H)), boardFinished(T).
+boardFinished([]).
 
+/* Run as many 0 replacements as necessary until the board is complete */
+solver(B, B) :- B \== [], boardFinished(B).
+solver(B, FinB) :- replace0(B,NewB), solver(NewB, FinB).
 
-checkAllBox(B) :-
-    checkBox(B,0,0),
-    checkBox(B,0,1),
-    checkBox(B,0,2),
-    checkBox(B,1,0),
-    checkBox(B,1,1),
-    checkBox(B,1,2),
-    checkBox(B,2,0),
-    checkBox(B,2,1),
-    checkBox(B,2,2).
-
-%
-% solve(B, S) :- 
-
-startSolve(X) :- board(X), solve(X, Y), show(Y).
+/* Print a board from above followed by the solution(s) to that board */
+solve() :- board(X), write("Board\n"), print(X), solver(X, Y), write("\nSolution\n"),print(Y).
